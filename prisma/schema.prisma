@@ -12,11 +12,17 @@ enum Plan {
   PREMIUM
 }
 
-enum Status {
+enum StatusPayment {
   PENDING
   APPROVED
   FAILED
   CANCELED
+}
+
+enum StatusLyricsSubmitted {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum PaymentMethod {
@@ -36,18 +42,21 @@ enum Language {
 }
 
 model User {
-  id            String        @id @default(uuid())
-  first_name    String
-  last_name     String
-  username      String        @unique
-  email         String        @unique
-  password_hash String
-  birth_date    DateTime
-  plan          Plan          @default(FREE)
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @updatedAt
-  Transaction   Transaction[]
-  Playlist      Playlist[]
+  id               String             @id @default(uuid())
+  first_name       String
+  last_name        String
+  username         String             @unique
+  email            String             @unique
+  password_hash    String
+  birth_date       DateTime
+  plan             Plan               @default(FREE)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  Transaction      Transaction[]
+  Playlist         Playlist[]
+  Favorite         Favorite[]
+  SongLog          SongLog[]
+  LyricsSubmission LyricsSubmission[]
 
   @@map("users")
 }
@@ -57,7 +66,7 @@ model Transaction {
   user             User          @relation(fields: [user_id], references: [id])
   user_id          String
   plan             Plan          @default(PREMIUM)
-  status           Status        @default(PENDING)
+  status           StatusPayment @default(PENDING)
   amount           Float
   currency         String        @default("BRL")
   transaction_date DateTime      @default(now())
@@ -69,21 +78,24 @@ model Transaction {
 }
 
 model Song {
-  id            String          @id @default(uuid())
-  title         String
-  slug          String
-  album         Album           @relation(fields: [album_id], references: [id])
-  album_id      String
-  artist        Artist          @relation(fields: [artist_id], references: [id])
-  artist_id     String
-  language      Language
-  lyrics        String?
-  chords        String?
-  duration      Int
-  play_count    Int             @default(0)
-  created_at    DateTime        @default(now())
-  updated_at    DateTime        @updatedAt
-  PlaylistSongs PlaylistSongs[]
+  id               String             @id @default(uuid())
+  title            String
+  slug             String             @unique
+  album            Album              @relation(fields: [album_id], references: [id])
+  album_id         String
+  artist           Artist             @relation(fields: [artist_id], references: [id])
+  artist_id        String
+  language         Language
+  lyrics           String?
+  chords           String?
+  duration         Int
+  play_count       Int                @default(0)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  PlaylistSongs    PlaylistSong[]
+  SongLog          SongLog[]
+  LyricsSubmission LyricsSubmission[]
+  MusicHighlight   MusicHighlight[]
 
   @@map("songs")
 }
@@ -91,7 +103,7 @@ model Song {
 model Album {
   id           String   @id @default(uuid())
   title        String
-  slug         String
+  slug         String   @unique
   release_date DateTime
   artist       Artist   @relation(fields: [artist_id], references: [id])
   artist_id    String
@@ -105,7 +117,7 @@ model Album {
 model Artist {
   id         String   @id @default(uuid())
   name       String
-  slug       String
+  slug       String   @unique
   bio        String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -116,23 +128,73 @@ model Artist {
 }
 
 model Playlist {
-  id            String          @id @default(uuid())
-  user          User            @relation(fields: [user_id], references: [id])
+  id            String         @id @default(uuid())
+  user          User           @relation(fields: [user_id], references: [id])
   user_id       String
   title         String
   is_public     Boolean
-  created_at    DateTime        @default(now())
-  updated_at    DateTime        @updatedAt
-  PlaylistSongs PlaylistSongs[]
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  PlaylistSongs PlaylistSong[]
+  Favorite      Favorite[]
 
   @@map("playlists")
 }
 
-model PlaylistSongs {
+model PlaylistSong {
   id          String   @id @default(uuid())
   playlist    Playlist @relation(fields: [playlist_id], references: [id])
   playlist_id String
   song        Song     @relation(fields: [song_id], references: [id])
   song_id     String
   added_at    DateTime @default(now())
+
+  @@map("playlist_songs")
+}
+
+model Favorite {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [user_id], references: [id])
+  user_id     String
+  playlist    Playlist @relation(fields: [playlist_id], references: [id])
+  playlist_id String
+  created_at  DateTime @default(now())
+
+  @@map("favorites")
+}
+
+model SongLog {
+  id              Int      @id @default(autoincrement())
+  user            User     @relation(fields: [user_id], references: [id])
+  user_id         String
+  song            Song     @relation(fields: [song_id], references: [id])
+  song_id         String
+  played_at       DateTime
+  duration_played Int
+
+  @@map("song_logs")
+}
+
+model LyricsSubmission {
+  id               String                @id @default(uuid())
+  user             User                  @relation(fields: [user_id], references: [id])
+  user_id          String
+  song             Song                  @relation(fields: [song_id], references: [id])
+  song_id          String
+  submitted_lyrics String
+  status           StatusLyricsSubmitted @default(PENDING)
+  submitted_at     DateTime              @default(now())
+  reviewed_at      DateTime?
+
+  @@map("lyrics_submissions")
+}
+
+model MusicHighlight {
+  id         String   @id @default(uuid())
+  month_year DateTime
+  song       Song     @relation(fields: [song_id], references: [id])
+  song_id    String
+  play_count Int      @default(0)
+
+  @@map("musics_highlights")
 }
