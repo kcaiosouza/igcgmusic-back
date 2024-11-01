@@ -48,10 +48,10 @@ model User {
   username         String             @unique
   email            String             @unique
   password_hash    String
-  birth_date       DateTime
+  birth_date       DateTime?
   plan             Plan               @default(FREE)
   created_at       DateTime           @default(now())
-  updated_at       DateTime           @updatedAt
+  updated_at       DateTime?          @updatedAt
   Transaction      Transaction[]
   Playlist         Playlist[]
   Favorite         Favorite[]
@@ -72,7 +72,7 @@ model Transaction {
   transaction_date DateTime      @default(now())
   payment_method   PaymentMethod
   created_at       DateTime      @default(now())
-  updated_at       DateTime      @updatedAt
+  updated_at       DateTime?     @updatedAt
 
   @@map("transactions")
 }
@@ -86,12 +86,12 @@ model Song {
   artist           Artist             @relation(fields: [artist_id], references: [id])
   artist_id        String
   language         Language
-  lyrics           String?
-  chords           String?
+  lyrics           String?            @db.Text
+  chords           String?            @db.Text
   duration         Int
   play_count       Int                @default(0)
   created_at       DateTime           @default(now())
-  updated_at       DateTime           @updatedAt
+  updated_at       DateTime?          @updatedAt
   PlaylistSongs    PlaylistSong[]
   SongLog          SongLog[]
   LyricsSubmission LyricsSubmission[]
@@ -101,26 +101,26 @@ model Song {
 }
 
 model Album {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   title        String
-  slug         String   @unique
+  slug         String    @unique
   release_date DateTime
-  artist       Artist   @relation(fields: [artist_id], references: [id])
+  artist       Artist    @relation(fields: [artist_id], references: [id])
   artist_id    String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  created_at   DateTime  @default(now())
+  updated_at   DateTime? @updatedAt
   Song         Song[]
 
   @@map("albuns")
 }
 
 model Artist {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   name       String
-  slug       String   @unique
-  bio        String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  slug       String    @unique
+  bio        String?   @db.Text
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
   Album      Album[]
   Song       Song[]
 
@@ -134,7 +134,7 @@ model Playlist {
   title         String
   is_public     Boolean
   created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
+  updated_at    DateTime?      @updatedAt
   PlaylistSongs PlaylistSong[]
   Favorite      Favorite[]
 
@@ -181,7 +181,7 @@ model LyricsSubmission {
   user_id          String
   song             Song                  @relation(fields: [song_id], references: [id])
   song_id          String
-  submitted_lyrics String
+  submitted_lyrics String                @db.Text
   status           StatusLyricsSubmitted @default(PENDING)
   submitted_at     DateTime              @default(now())
   reviewed_at      DateTime?
