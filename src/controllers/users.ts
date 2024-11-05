@@ -15,8 +15,8 @@ const createUserSchema = z.object({
 const updateUserSchema = z.object({
   username: z.string().min(3).optional().transform((val) => val?.toLowerCase()),
   email: z.string().email().optional().transform((val) => val?.toLowerCase()),
-  first_name: z.string().optional().transform((val) => val?.toLowerCase()),
-  last_name: z.string().optional().transform((val) => val?.toLowerCase()),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
 });
 
 const newPasswordUserSchema = z.object({
