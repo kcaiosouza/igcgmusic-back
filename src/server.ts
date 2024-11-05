@@ -1,13 +1,12 @@
-import http from 'http';
+import Fastify from 'fastify';
+import { userRoutes } from './controllers/users';
 
 const port = 3333;
+const fastify = Fastify();
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello, TypeScript Server!');
-});
+fastify.register(userRoutes, { prefix: '/users' });
 
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/`);
+fastify.listen({ port }, (err) => {
+  if (err) throw err;
+  console.log(`Server is running!`);
 });
