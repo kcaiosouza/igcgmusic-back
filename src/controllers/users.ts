@@ -246,4 +246,43 @@ export async function userRoutes(fastify: FastifyInstance) {
     }
     
   })
+
+  // Recover user
+  fastify.get('/recover', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
+      });
+    }
+
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          return reply.send(user);
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
+        })
+      }
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
+      })
+    }
+  })
 }
