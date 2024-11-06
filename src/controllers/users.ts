@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import prisma from '../plugins/prisma';
 import { z } from 'zod';
 import bcrypt from "bcrypt";
+import { decodeToken } from '../plugins/crypto';
 
 // Schemas de validação para a rota de usuário
 const createUserSchema = z.object({
@@ -57,84 +58,192 @@ export async function userRoutes(fastify: FastifyInstance) {
 
   // Update
   fastify.put<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    const { id } = request.params;
+    const authHeader = request.headers.authorization;
 
-    const parsedData = updateUserSchema.safeParse(request.body);
-    if (!parsedData.success) {
-      return reply.status(400).send(parsedData.error.format());
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
+      });
     }
 
-    try {
-      const updatedUser = await prisma.user.update({
-        where: { id },
-        data: parsedData.data,
-      });
-      return reply.send(updatedUser);
-    } catch (error) {
-      return reply.status(404).send({
-        error: 404,
-        message: 'Usuário não encontrado',
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          const { id } = request.params;
+
+          const parsedData = updateUserSchema.safeParse(request.body);
+          if (!parsedData.success) {
+            return reply.status(400).send(parsedData.error.format());
+          }
+
+          try {
+            const updatedUser = await prisma.user.update({
+              where: { id },
+              data: parsedData.data,
+            });
+            return reply.send(updatedUser);
+          } catch (error) {
+            return reply.status(404).send({
+              error: 404,
+              message: 'Usuário não encontrado',
+            })
+          }
+
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
+        })
+      }
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
       })
     }
   });
 
   // Delete
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    const { id } = request.params;
+    const authHeader = request.headers.authorization;
 
-    try {
-      await prisma.user.delete({
-        where: { id },
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
       });
-      return reply.send({ message: 'Usuário deletado com sucesso.' });
-    } catch (error) {
-      return reply.status(404).send({
-        error: 404,
-        message: 'Usuário não encontrado',
+    }
+
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          
+          const { id } = request.params;
+
+          try {
+            await prisma.user.delete({
+              where: { id },
+            });
+            return reply.send({ message: 'Usuário deletado com sucesso.' });
+          } catch (error) {
+            return reply.status(404).send({
+              error: 404,
+              message: 'Usuário não encontrado',
+            })
+          }
+
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
+        })
+      }
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
       })
     }
   });
 
   // New password
   fastify.patch<{ Params: { id: string } }>('/:id/password', async (request, reply) => {
-    const { id } = request.params;
-    const data = newPasswordUserSchema.safeParse(request.body);
-    
-    if (!data.success) {
-      return reply.status(400).send(data.error.format());
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
+      });
     }
 
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id },
-      });
-      
-      if (!user) {
-        return reply.status(404).send({
-          error: 404,
-          message: 'Usuário não encontrado',
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          
+          const { id } = request.params;
+          const data = newPasswordUserSchema.safeParse(request.body);
+          
+          if (!data.success) {
+            return reply.status(400).send(data.error.format());
+          }
+
+          try {
+            const user = await prisma.user.findUnique({
+              where: { id },
+            });
+            
+            if (!user) {
+              return reply.status(404).send({
+                error: 404,
+                message: 'Usuário não encontrado',
+              })
+            }
+
+            const isPasswordValid = await bcrypt.compare(data.data.old_password, user.password_hash);
+            if (!isPasswordValid) {
+              return reply.status(401).send({
+                error: 401,
+                message: 'Senha atual incorreta.',
+              });
+            }
+
+            const newHashedPassword = await bcrypt.hash(data.data.new_password, 10);
+
+            await prisma.user.update({
+              where: { id },
+              data: { password_hash: newHashedPassword },
+            });
+
+            return reply.send({ error: false, message: 'Senha atualizada com sucesso.' });
+          }catch (err) {
+            console.log(err);
+            return reply.status(500).send({ error: 'Erro ao atualizar a senha.' });
+          }
+
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
         })
       }
-
-      const isPasswordValid = await bcrypt.compare(data.data.old_password, user.password_hash);
-      if (!isPasswordValid) {
-        return reply.status(401).send({
-          error: 401,
-          message: 'Senha atual incorreta.',
-        });
-      }
-
-      const newHashedPassword = await bcrypt.hash(data.data.new_password, 10);
-
-      await prisma.user.update({
-        where: { id },
-        data: { password_hash: newHashedPassword },
-      });
-
-      return reply.send({ error: false, message: 'Senha atualizada com sucesso.' });
-    }catch (err) {
-      console.log(err);
-      return reply.status(500).send({ error: 'Erro ao atualizar a senha.' });
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
+      })
     }
+    
   })
 }
