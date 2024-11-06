@@ -10,6 +10,7 @@ const createUserSchema = z.object({
   email: z.string().email(),
   first_name: z.string(),
   last_name: z.string(),
+  image_url: z.string().url(),
   password: z.string().min(6)
 });
 
@@ -34,8 +35,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       data: {
         username: (data.username).toLowerCase(),
         email: (data.email).toLowerCase(),
-        first_name: (data.first_name).toLowerCase(),
-        last_name: (data.last_name).toLowerCase(),
+        first_name: data.first_name,
+        last_name: data.last_name,
+        image_url: data.image_url,
         password_hash: passwordHashed
       }
     });

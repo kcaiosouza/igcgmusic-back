@@ -48,6 +48,7 @@ model User {
   username         String             @unique
   email            String             @unique
   password_hash    String
+  image_url        String             @db.Text
   birth_date       DateTime?
   plan             Plan               @default(FREE)
   created_at       DateTime           @default(now())
@@ -86,6 +87,7 @@ model Song {
   artist           Artist             @relation(fields: [artist_id], references: [id])
   artist_id        String
   language         Language
+  file_url         String             @db.Text
   lyrics           String?            @db.Text
   chords           String?            @db.Text
   duration         Int
@@ -107,6 +109,7 @@ model Album {
   release_date DateTime
   artist       Artist    @relation(fields: [artist_id], references: [id])
   artist_id    String
+  image_url    String    @db.Text
   created_at   DateTime  @default(now())
   updated_at   DateTime? @updatedAt
   Song         Song[]
@@ -119,6 +122,7 @@ model Artist {
   name       String
   slug       String    @unique
   bio        String?   @db.Text
+  image_url  String    @db.Text
   created_at DateTime  @default(now())
   updated_at DateTime? @updatedAt
   Album      Album[]
@@ -133,6 +137,7 @@ model Playlist {
   user_id       String
   title         String
   is_public     Boolean
+  image_url     String         @db.Text
   created_at    DateTime       @default(now())
   updated_at    DateTime?      @updatedAt
   PlaylistSongs PlaylistSong[]
