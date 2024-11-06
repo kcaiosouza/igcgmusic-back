@@ -1,4 +1,3 @@
-import { error } from "console";
 import { AES, enc } from "crypto-js";
 
 interface encodeTokenProps {
