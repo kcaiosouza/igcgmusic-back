@@ -14,11 +14,20 @@ const createUserSchema = z.object({
   password: z.string().min(6)
 });
 
+const readUsernameSchema = z.object({
+  username: z.string(),
+})
+
+const searchUserSchema = z.object({
+  query: z.string().min(1),
+});
+
 const updateUserSchema = z.object({
   username: z.string().min(3).optional().transform((val) => val?.toLowerCase()),
   email: z.string().email().optional().transform((val) => val?.toLowerCase()),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
+  image_url: z.string().url().optional(),
 });
 
 const newPasswordUserSchema = z.object({
@@ -54,6 +63,39 @@ export async function userRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({
         error: 404,
         message: 'Usuário não encontrado',
+      })
+    }
+  });
+  fastify.get<{ Params: { username: string } }>('/username/:username', async (request, reply) => {
+    const { data } = readUsernameSchema.safeParse(request.params)
+    const user = await prisma.user.findUnique({ where: { username: data?.username } });
+    if(user) {
+      return reply.send(user);
+    }else {
+      return reply.status(404).send({
+        error: 404,
+        message: 'Usuário não encontrado',
+      })
+    }
+  });
+  fastify.get('/search', async (request, reply) => {
+    // const { query } = request.query as { query?: string };
+    const { data } = searchUserSchema.safeParse(request.query)
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { startsWith: data?.query?.toLowerCase(), } },
+          { first_name: { startsWith: data?.query?.toLowerCase(), } },
+          { last_name: { startsWith: data?.query?.toLowerCase(), } },
+        ],
+      },
+    });
+    if(users.length > 0) {
+      return reply.send(users);
+    }else {
+      return reply.status(404).send({
+        error: 404,
+        message: 'Nenhum usuário encontrado',
       })
     }
   });
