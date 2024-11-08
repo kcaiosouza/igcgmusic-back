@@ -154,6 +154,7 @@ model PlaylistSong {
   song_id     String
   added_at    DateTime @default(now())
 
+  @@unique([playlist_id, song_id])
   @@map("playlist_songs")
 }
 
