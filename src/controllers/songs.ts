@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../plugins/prisma';
-import { string, z } from 'zod';
+import { z } from 'zod';
 
 const songSchema = z.object({
   title: z.string().min(1),
