@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `song_logs` MODIFY `played_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);

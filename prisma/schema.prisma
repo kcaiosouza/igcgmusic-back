@@ -175,7 +175,7 @@ model SongLog {
   user_id         String
   song            Song     @relation(fields: [song_id], references: [id])
   song_id         String
-  played_at       DateTime
+  played_at       DateTime @default(now())
   duration_played Int
 
   @@map("song_logs")
