@@ -175,6 +175,121 @@ export async function playlistRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Ver playlists favoritadas
+  fastify.get('/user/favorites', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
+      });
+    }
+
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          // válido... oq vamos fazer?
+          const playlists = await prisma.favorite.findMany({
+            where: {
+              user_id: token[0]
+            },
+            include: {
+              playlist: {
+                include: {
+                  PlaylistSongs: {
+                    include: {
+                      song: {
+                        include: {
+                          album: true,
+                          artist: true,
+                        }
+                      },
+                    }
+                  },
+                }
+              }
+            }
+          });
+
+          return reply.send(playlists);
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
+        })
+      }
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
+      })
+    }
+  })
+
+  // Favoritar um playlist
+  fastify.post('/favorite/:playlist_id', async (request, reply) => {
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 401,
+        message: "Token de autenticação ausente ou inválido",
+      });
+    }
+
+    const authToken = authHeader.substring(7);
+    const { token } = decodeToken({token: authToken})
+
+    if(token && token != null) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: token[0] } });
+        if(user?.username == token[1]) {
+          // válido... oq vamos fazer?
+          const favoritePlaylistSchema = z.object({
+            playlist_id: z.string().uuid().min(1),
+          });
+
+          const { playlist_id } = favoritePlaylistSchema.parse(request.params)
+
+          const playlists = await prisma.favorite.create({
+            data: {
+              user_id: token[0],
+              playlist_id
+            }
+          });
+
+          return reply.send(playlists);
+        }else {
+          return reply.status(401).send({
+            error: 401,
+            message: 'Token de autenticação inválido',
+          })
+        }
+      }catch(err) {
+        return reply.status(500).send({
+          error: 500,
+          message: 'Erro no banco de dados',
+        })
+      }
+    }else {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Token de autenticação inválido',
+      })
+    }
+  })
+
   // Ver uma playlist específica
   fastify.get('/:id', async (request, reply) => {
     const data = getPlaylistByIdSchema.parse(request.params);
