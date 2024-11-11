@@ -132,16 +132,17 @@ model Artist {
 }
 
 model Playlist {
-  id            String         @id @default(uuid())
-  user          User           @relation(fields: [user_id], references: [id])
-  user_id       String
-  title         String
-  is_public     Boolean
-  image_url     String         @db.Text
-  created_at    DateTime       @default(now())
-  updated_at    DateTime?      @updatedAt
-  PlaylistSongs PlaylistSong[]
-  Favorite      Favorite[]
+  id                String              @id @default(uuid())
+  user              User                @relation(fields: [user_id], references: [id])
+  user_id           String
+  title             String
+  is_public         Boolean
+  image_url         String              @db.Text
+  created_at        DateTime            @default(now())
+  updated_at        DateTime?           @updatedAt
+  PlaylistSongs     PlaylistSong[]
+  Favorite          Favorite[]
+  PlaylistHighlight PlaylistHighlight[]
 
   @@map("playlists")
 }
@@ -203,4 +204,14 @@ model MusicHighlight {
   play_count Int      @default(0)
 
   @@map("musics_highlights")
+}
+
+model PlaylistHighlight {
+  id          String   @id @default(uuid())
+  month_year  DateTime
+  playlist    Playlist @relation(fields: [playlist_id], references: [id])
+  playlist_id String
+  play_count  Int      @default(0)
+
+  @@map("playlist_highlights")
 }
