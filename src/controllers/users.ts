@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import prisma from '../plugins/prisma';
 import { z } from 'zod';
 import bcrypt from "bcrypt";
-import { decodeToken } from '../plugins/crypto';
+import { decodeToken, encodeToken } from '../plugins/crypto';
 
 // Schemas de validação para a rota de usuário
 const createUserSchema = z.object({
@@ -289,6 +289,29 @@ export async function userRoutes(fastify: FastifyInstance) {
       })
     }
     
+  })
+
+  // Login
+  fastify.post<{ Body: { username: string; password: string } }>('/login', async (request, reply) => {
+    const { username, password } = request.body;
+    const user = await prisma.user.findUnique({ where: { username } });
+
+    if (!user) {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Usuário não encontrado',
+      });
+    }
+
+    if (!await bcrypt.compare(password, user.password_hash)) {
+      return reply.status(401).send({
+        error: 401,
+        message: 'Senha incorreta',
+      });
+    }
+
+    const token = encodeToken({ userId: user.id, username: user.username });
+    return reply.send({token});
   })
 
   // Recover user
